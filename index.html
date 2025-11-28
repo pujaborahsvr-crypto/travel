@@ -1,0 +1,423 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Budget Travel Guide — Today's Trip</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{--accent:#1e90ff;--muted:#6b7280;--card:#ffffff;--bg:#f7fbff}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;background:var(--bg);color:#0f172a;line-height:1.4;transition:background .25s,color .25s}
+    .container{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;gap:16px;align-items:center}
+    .logo{background:linear-gradient(135deg,var(--accent),#7dd3fc);color:white;padding:10px 14px;border-radius:10px;font-weight:700}
+    h1{margin:0;font-size:1.6rem}
+    p.lead{color:var(--muted);margin-top:6px}
+
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    @media (max-width:880px){.grid{grid-template-columns:1fr} .container{padding:12px}}
+
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(16,24,40,0.06);transition:transform .18s}
+    .card:hover{transform:translateY(-4px)}
+
+    .row{display:flex;gap:10px;margin-bottom:10px}
+    .row input[type="number"],select,input[type="text"]{flex:1;padding:8px;border-radius:8px;border:1px solid #e6eef9}
+    label{font-size:0.9rem;color:var(--muted);display:block;margin-bottom:6px}
+    button.btn{background:var(--accent);color:white;padding:10px 12px;border:none;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #cde8ff;color:var(--accent);padding:8px;border-radius:8px;cursor:pointer}
+
+    ul.tips{padding-left:18px;margin:8px 0}
+    .itinerary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+    .stage{background:#fbfdff;padding:10px;border-radius:8px;border:1px solid #eef6ff}
+
+    footer{margin-top:18px;color:var(--muted);font-size:0.85rem}
+
+    .result{font-weight:700;font-size:1.1rem;margin-top:8px}
+    .small{font-size:0.85rem;color:var(--muted);white-space:pre-line}
+
+    /* hero */
+    .hero{height:220px;position:relative;background-image:url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80');background-size:cover;background-position:center;border-radius:12px;overflow:hidden;margin-bottom:14px}
+    .hero .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,7,18,0.15),rgba(3,7,18,0.45));display:flex;align-items:flex-end;padding:20px;color:white}
+    .hero h2{margin:0;font-size:1.6rem}
+
+    /* snapshot card */
+    #snapshot{font-size:1.4rem;margin-bottom:6px}
+    canvas{max-height:220px;display:block;width:100% !important;height:200px !important}
+
+    /* dark theme tweaks */
+    body.dark{background:#071027;color:#e6eef9}
+    body.dark .card{background:#0b1220}
+    body.dark .ghost{border-color:rgba(255,255,255,0.08);color:#8fbffb}
+    body.dark .logo{filter:brightness(1.05)}
+
+    /* animations */
+    .pulse{animation:pulse .9s ease-in-out}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+
+    /* responsive */
+    @media (max-width:520px){ .grid{grid-template-columns:1fr} .hero{height:160px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">TT</div>
+      <div style="flex:1">
+        <h1>Budget Travel Guide</h1>
+        <p class="lead">Smart tips, quick budget calculator and sample itineraries to stretch your travel rupee (or any currency).</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <button id="themeToggle" class="ghost">Toggle Dark Mode</button>
+        <button id="downloadHtml" class="ghost">Download HTML</button>
+      </div>
+    </header>
+
+    <section class="hero card" aria-hidden="false">
+      <div class="overlay">
+        <div>
+          <h2>Explore on a Budget — choose a place & see a live spending chart</h2>
+          <div class="small">Destinations: Mizoram, Kapamodzu, Kaziranga, Sivasagar, Russia, Switzerland, Greece, Japan, Nepal</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <main class="card">
+        <h2>Plan smart — get the numbers</h2>
+        <p class="small">Fill rough per-day or per-trip estimates and click <strong>Estimate budget</strong>.</p>
+
+        <div style="margin-top:12px">
+          <div>
+            <label>Trip name (optional)</label>
+            <input id="tripName" type="text" placeholder="e.g., 5-day Kerala trip" />
+          </div>
+
+          <div style="margin-top:10px">
+            <label>Destination</label>
+            <select id="destination" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef9">
+              <option>Mizoram</option>
+              <option>Kapamodzu</option>
+              <option>Kaziranga</option>
+              <option>Sivasagar</option>
+              <option>Russia</option>
+              <option>Switzerland</option>
+              <option>Greece</option>
+              <option>Japan</option>
+              <option>Nepal</option>
+            </select>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div style="flex:1">
+              <label>Number of days</label>
+              <input id="days" type="number" min="1" value="3" />
+            </div>
+            <div style="flex:1">
+              <label>Number of travelers</label>
+              <input id="people" type="number" min="1" value="1" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Accommodation per night (per person)</label>
+              <input id="acc" type="number" min="0" value="1500" />
+            </div>
+            <div style="flex:1">
+              <label>Food per day (per person)</label>
+              <input id="food" type="number" min="0" value="600" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Transport (total for trip)</label>
+              <input id="transport" type="number" min="0" value="3000" />
+            </div>
+            <div style="flex:1">
+              <label>Activities & entrance fees (total)</label>
+              <input id="activities" type="number" min="0" value="1200" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Contingency (%)</label>
+              <input id="cont" type="number" min="0" value="10" />
+            </div>
+            <div style="flex:1">
+              <label>Currency symbol</label>
+              <input id="curr" type="text" value="₹" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <button class="btn" id="estimate">Estimate budget</button>
+            <button class="ghost" id="reset">Reset</button>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <button class="ghost" id="saveTrip">Save Trip</button>
+              <button class="ghost" id="loadTrips">Load Saved</button>
+            </div>
+          </div>
+
+          <div id="output" class="result" aria-live="polite"></div>
+          <div id="breakdown" class="small"></div>
+        </div>
+
+        <section style="margin-top:18px">
+          <h3>Budgeting tips</h3>
+          <ul class="tips">
+            <li>Travel shoulder-season: lower costs, fewer crowds.</li>
+            <li>Use buses & shared rides over taxis for short hops.</li>
+            <li>Book accommodation with free breakfast to save on meals.</li>
+            <li>Carry a light first-aid and refillable water bottle.</li>
+            <li>Plan 1 paid experience per 2 days to keep costs down.</li>
+          </ul>
+        </section>
+
+        <section style="margin-top:18px">
+          <h3>Sample 3-day budget itinerary (cheap)</h3>
+          <div class="itinerary">
+            <div class="stage"><strong>Day 1</strong><div class="small">Arrive, explore free walking tour, sunset viewpoint. Low-cost dinner.</div></div>
+            <div class="stage"><strong>Day 2</strong><div class="small">Local market, cheap museum, short nature walk, street-food dinner.</div></div>
+            <div class="stage"><strong>Day 3</strong><div class="small">Relaxed morning, local transport to viewpoint, depart.</div></div>
+          </div>
+        </section>
+
+        <section style="margin-top:18px">
+          <h3>Packing checklist (minimal)</h3>
+          <ul class="tips">
+            <li>2–3 shirts, 1 pair comfortable shoes, light rain jacket</li>
+            <li>Power bank, small toiletries, prescriptions, photocopies of docs</li>
+            <li>Reusable bag, laundry soap, ziplock for wet items</li>
+          </ul>
+        </section>
+      </main>
+
+      <aside class="card">
+        <h2>Quick budget snapshot</h2>
+        <p class="small">Estimate total trip cost per person and group.</p>
+        <div style="margin-top:12px">
+          <div id="snapshot">—</div>
+          <div id="snapshotDetail" class="small"></div>
+          <div style="margin-top:10px">
+            <canvas id="spendChart"></canvas>
+          </div>
+        </div>
+
+        <hr style="margin:12px 0" />
+        <h3>Currency converter</h3>
+        <div class="small" style="margin-top:8px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="fromCur" style="padding:6px;border-radius:6px;border:1px solid #e6eef9"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option></select>
+            <select id="toCur" style="padding:6px;border-radius:6px;border:1px solid #e6eef9"><option>USD</option><option>INR</option><option>EUR</option><option>GBP</option><option>JPY</option></select>
+            <button id="convBtn" class="ghost">Convert</button>
+          </div>
+          <div id="convResult" class="small" style="margin-top:8px">—</div>
+        </div>
+
+        <hr style="margin:12px 0" />
+        <h3>Money-saving strategies</h3>
+        <ol class="small">
+          <li>Choose homestays or dorm rooms vs. hotels.</li>
+          <li>Cook or buy groceries for 1 meal a day.</li>
+          <li>Pre-book major transport 2–3 weeks early for best fares.</li>
+        </ol>
+
+        <hr style="margin:12px 0" />
+        <h3>Frequently asked</h3>
+        <p class="small"><strong>Q:</strong> How much cash to carry? <br/><strong>A:</strong> Keep 10–20% of expected budget as cash for remote areas.</p>
+      </aside>
+    </div>
+
+    <footer>
+      Built with ♥ — tweak it and reuse for your trips.
+    </footer>
+  </div>
+
+  <script>
+    // Formatting helper
+    function formatCurrency(v){ const cur = document.getElementById('curr').value || ''; return cur + Number(v).toLocaleString(); }
+
+    // Calculate budget
+    function estimate(){
+      const days = Number(document.getElementById('days').value) || 1;
+      const people = Number(document.getElementById('people').value) || 1;
+      const acc = Number(document.getElementById('acc').value) || 0;
+      const food = Number(document.getElementById('food').value) || 0;
+      const transport = Number(document.getElementById('transport').value) || 0;
+      const activities = Number(document.getElementById('activities').value) || 0;
+      const contPct = Number(document.getElementById('cont').value) || 0;
+
+      const accomTotalPerPerson = acc * days;
+      const foodTotalPerPerson = food * days;
+      const transportShare = transport/Math.max(people,1);
+      const activitiesShare = activities/Math.max(people,1);
+      const perPersonBase = accomTotalPerPerson + foodTotalPerPerson + transportShare + activitiesShare;
+      const contingency = perPersonBase * (contPct/100);
+      const perPersonTotal = Math.round(perPersonBase + contingency);
+      const groupTotal = Math.round(perPersonTotal * people);
+
+      document.getElementById('output').textContent = `${formatCurrency(perPersonTotal)} per person — ${formatCurrency(groupTotal)} total`;
+      document.getElementById('breakdown').textContent = `Breakdown (per person): Accommodation ${formatCurrency(accomTotalPerPerson)}, Food ${formatCurrency(foodTotalPerPerson)}, Transport share ${formatCurrency(transportShare)}, Activities share ${formatCurrency(activitiesShare)}, Contingency ${contPct}% (${formatCurrency(contingency)})`;
+
+      document.getElementById('snapshot').textContent = formatCurrency(perPersonTotal);
+      document.getElementById('snapshotDetail').textContent = `${days} day(s) — ${people} traveler(s) — ${document.getElementById('destination').value}`;
+
+      // small pulse animation
+      const snap = document.getElementById('snapshot');
+      snap.classList.remove('pulse');
+      void snap.offsetWidth;
+      snap.classList.add('pulse');
+
+      updateChart();
+    }
+
+    // Reset
+    document.getElementById('reset').addEventListener('click', ()=>{
+      document.getElementById('days').value = 3;
+      document.getElementById('people').value = 1;
+      document.getElementById('acc').value = 1500;
+      document.getElementById('food').value = 600;
+      document.getElementById('transport').value = 3000;
+      document.getElementById('activities').value = 1200;
+      document.getElementById('cont').value = 10;
+      document.getElementById('curr').value = '₹';
+      document.getElementById('tripName').value = '';
+      document.getElementById('output').textContent='';
+      document.getElementById('breakdown').textContent='';
+      document.getElementById('snapshot').textContent='—';
+      document.getElementById('snapshotDetail').textContent='';
+      updateChart();
+    });
+
+    // Download current HTML
+    document.getElementById('downloadHtml').addEventListener('click', ()=>{
+      const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([html],{type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'budget-travel-guide.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Chart.js setup
+    let chart = null;
+    function initChart(){
+      const ctx = document.getElementById('spendChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'pie',
+        data: {labels:['Accommodation','Food','Transport','Activities','Contingency'], datasets:[{data:[1,1,1,1,1]}]},
+        options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+      });
+      updateChart();
+    }
+
+    function updateChart(){
+      if(!chart) return;
+      const days = Number(document.getElementById('days').value) || 1;
+      const people = Number(document.getElementById('people').value) || 1;
+      const acc = Number(document.getElementById('acc').value) || 0;
+      const food = Number(document.getElementById('food').value) || 0;
+      const transport = Number(document.getElementById('transport').value) || 0;
+      const activities = Number(document.getElementById('activities').value) || 0;
+      const contPct = Number(document.getElementById('cont').value) || 0;
+
+      const accomTotalPerPerson = acc * days;
+      const foodTotalPerPerson = food * days;
+      const transportShare = transport/Math.max(people,1);
+      const activitiesShare = activities/Math.max(people,1);
+      const perPersonBase = accomTotalPerPerson + foodTotalPerPerson + transportShare + activitiesShare;
+      const contingency = perPersonBase * (contPct/100);
+
+      chart.data.datasets[0].data = [Math.round(accomTotalPerPerson), Math.round(foodTotalPerPerson), Math.round(transportShare), Math.round(activitiesShare), Math.round(contingency)];
+      chart.update();
+    }
+
+    // Inputs update bindings
+    ['days','people','acc','food','transport','activities','cont','destination','curr'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.addEventListener('input', ()=>{ estimate(); });
+    });
+
+    // Currency conversion using exchangerate.host (free)
+    async function fetchRates(base='INR'){
+      try{
+        const res = await fetch(`https://api.exchangerate.host/latest?base=${base}`);
+        const json = await res.json();
+        return json.rates || null;
+      } catch(e){
+        console.warn('currency fetch failed', e);
+        return null;
+      }
+    }
+    document.getElementById('convBtn').addEventListener('click', async ()=>{
+      const from = document.getElementById('fromCur').value;
+      const to = document.getElementById('toCur').value;
+      const raw = document.getElementById('snapshot').textContent.replace(/[^0-9\.]/g,'');
+      const amount = Number(raw) || 0;
+      document.getElementById('convResult').textContent = 'Converting...';
+      const rates = await fetchRates(from);
+      if(!rates){ document.getElementById('convResult').textContent = 'Conversion failed (network)'; return; }
+      const rate = rates[to];
+      if(!rate){ document.getElementById('convResult').textContent = 'Rate not available'; return; }
+      const converted = amount * rate;
+      document.getElementById('convResult').textContent = `${to} ${converted.toFixed(2)}`;
+    });
+
+    // Dark mode toggle & persistence
+    const themeToggle = document.getElementById('themeToggle');
+    function applyDark(){ document.body.classList.add('dark'); localStorage.setItem('theme','dark'); }
+    function removeDark(){ document.body.classList.remove('dark'); localStorage.setItem('theme','light'); }
+    if(localStorage.getItem('theme') === 'dark') applyDark();
+    themeToggle.addEventListener('click', ()=>{ document.body.classList.toggle('dark'); if(document.body.classList.contains('dark')) applyDark(); else removeDark(); });
+
+    // Save / Load trips simple localStorage
+    document.getElementById('saveTrip').addEventListener('click', ()=>{
+      const trips = JSON.parse(localStorage.getItem('trips'||'[]')) || [];
+      const t = {
+        name: document.getElementById('tripName').value || ('Trip ' + new Date().toISOString()),
+        dest: document.getElementById('destination').value,
+        days: document.getElementById('days').value,
+        people: document.getElementById('people').value,
+        acc: document.getElementById('acc').value,
+        food: document.getElementById('food').value,
+        transport: document.getElementById('transport').value,
+        activities: document.getElementById('activities').value,
+        cont: document.getElementById('cont').value,
+        curr: document.getElementById('curr').value
+      };
+      trips.push(t);
+      localStorage.setItem('trips', JSON.stringify(trips));
+      alert('Trip saved locally');
+    });
+    document.getElementById('loadTrips').addEventListener('click', ()=>{
+      const trips = JSON.parse(localStorage.getItem('trips')||'[]');
+      if(!trips.length){ alert('No saved trips'); return; }
+      const list = trips.map((tr,i)=>`${i+1}. ${tr.name} — ${tr.dest} — ${tr.days}d — ${tr.curr}${Math.round((tr.acc*tr.days) + (tr.food*tr.days) + (tr.transport/tr.people) + (tr.activities/tr.people))}`).join('\n');
+      const pick = prompt('Saved trips:\n' + list + '\n\nEnter number to load');
+      const idx = Number(pick) - 1;
+      if(trips[idx]){
+        const tr = trips[idx];
+        document.getElementById('tripName').value = tr.name;
+        document.getElementById('destination').value = tr.dest;
+        document.getElementById('days').value = tr.days;
+        document.getElementById('people').value = tr.people;
+        document.getElementById('acc').value = tr.acc;
+        document.getElementById('food').value = tr.food;
+        document.getElementById('transport').value = tr.transport;
+        document.getElementById('activities').value = tr.activities;
+        document.getElementById('cont').value = tr.cont;
+        document.getElementById('curr').value = tr.curr;
+        estimate();
+      }
+    });
+
+    // Init on load
+    window.addEventListener('DOMContentLoaded', ()=>{ initChart(); estimate(); });
+  </script>
+</body>
+</html>
